@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "heybourn.headwind",
+    "bradlc.vscode-tailwindcss",
+    "stylelint.vscode-stylelint",
+    "vespa-dev-works.jestrunit",
+  ]
+}
