@@ -3,6 +3,8 @@ import axios from 'axios'
 import bigInt from 'big-integer'
 import { RippleAPI } from 'ripple-lib'
 
+const testnetFaucetAddress = 'rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe'
+
 export const api = new RippleAPI({
   server: 'wss://s.altnet.rippletest.net:51233',
 })
@@ -119,6 +121,48 @@ export const sendTokens = async (data: TokenSend): Promise<void> => {
   )
 
   console.log('Token Payment Response', tokenPaymentResponse)
+}
+
+export const hexToUtf8 = (hex: string): string => {
+  return decodeURIComponent(`%${hex.match(/.{1,2}/g)?.join('%')}`)
+}
+
+export const setDailyInterestRate = async (
+  genesisAddress: string,
+  genesisSecret: string,
+  rate: string,
+): Promise<void> => {
+  const preparedAdjustmentRatePayment = await api.preparePayment(
+    genesisAddress,
+    {
+      source: {
+        address: genesisAddress,
+        maxAmount: {
+          value: '1',
+          currency: 'drops',
+        },
+      },
+      destination: {
+        address: testnetFaucetAddress,
+        amount: {
+          value: '1',
+          currency: 'drops',
+        },
+      },
+      memos: [
+        {
+          data: `dailyInterestRate=${rate}`,
+        },
+      ],
+    },
+  )
+
+  const adjustmentRatePaymentResponse = await api.submit(
+    api.sign(preparedAdjustmentRatePayment.txJSON, genesisSecret)
+      .signedTransaction,
+  )
+
+  console.log('Adjustment Payment Response', adjustmentRatePaymentResponse)
 }
 
 /**

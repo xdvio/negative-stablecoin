@@ -5,10 +5,12 @@ import {
   api,
   enableRippling,
   fundFromFaucet,
+  hexToUtf8,
   initWS,
   issueTokens,
   openTrustline,
   sendTokens,
+  setDailyInterestRate,
 } from './utils/xrp'
 
 const StablecoinApp: React.FC = () => {
@@ -49,6 +51,8 @@ const StablecoinApp: React.FC = () => {
   const [tokenIssuanceAmount, setTokenIssuanceAmount] = useState<string>()
   const [aliceToBobValue, setAliceToBobValue] = useState<string>()
   const [bobToAliceValue, setBobToAliceValue] = useState<string>()
+  const [adjustmentRate, setAdjustmentRate] = useState<number>(1)
+  const [adjustmentFactorInput, setAdjustmentFactorInput] = useState<string>()
 
   useEffect(() => {
     const init = async (): Promise<void> => {
@@ -146,13 +150,22 @@ const StablecoinApp: React.FC = () => {
               )
               const destination = event.transaction.Destination as string
               const value = event.transaction.Amount.value as string
-              if (destination === aliceAccount.address) {
-                setAliceTokenBalance((prevBalance) =>
-                  new BigNumber(prevBalance).plus(value).toString(),
-                )
-              } else if (destination === bobAccount.address) {
-                setBobTokenBalance((prevBalance) =>
-                  new BigNumber(prevBalance).plus(value).toString(),
+              if (value) {
+                if (destination === aliceAccount.address) {
+                  setAliceTokenBalance((prevBalance) =>
+                    new BigNumber(prevBalance).plus(value).toString(),
+                  )
+                } else if (destination === bobAccount.address) {
+                  setBobTokenBalance((prevBalance) =>
+                    new BigNumber(prevBalance).plus(value).toString(),
+                  )
+                }
+              } else {
+                const dailyInterestRate = hexToUtf8(
+                  event.transaction.Memos[0].Memo.MemoData,
+                ).split('=')[1]
+                setAdjustmentRate(
+                  (prevRate) => prevRate * (1 - Number(dailyInterestRate)),
                 )
               }
             }
@@ -189,14 +202,19 @@ const StablecoinApp: React.FC = () => {
                       </p>
                       {currencyCode && genesisRipplingEnabled && (
                         <p className="text-sm leading-5 text-gray-500">
-                          {aliceTokenBalance} {currencyCode} on Ledger
+                          {aliceTokenBalance} {currencyCode} on ledger
                         </p>
                       )}
-                      {currencyCode && genesisRipplingEnabled && (
-                        <p className="text-sm leading-5 text-gray-500">
-                          {aliceTokenBalance} {currencyCode} Adj.
-                        </p>
-                      )}
+                      {currencyCode &&
+                        genesisRipplingEnabled &&
+                        adjustmentRate && (
+                          <p className="text-sm leading-5 text-gray-500">
+                            {new BigNumber(aliceTokenBalance)
+                              .times(adjustmentRate)
+                              .toString()}{' '}
+                            {currencyCode} Adj.
+                          </p>
+                        )}
                     </div>
                   </div>
                 </div>
@@ -330,14 +348,19 @@ const StablecoinApp: React.FC = () => {
                       </p>
                       {currencyCode && genesisRipplingEnabled && (
                         <p className="text-sm leading-5 text-gray-500">
-                          {bobTokenBalance} {currencyCode}
+                          {bobTokenBalance} {currencyCode} on ledger
                         </p>
                       )}
-                      {currencyCode && genesisRipplingEnabled && (
-                        <p className="text-sm leading-5 text-gray-500">
-                          {bobTokenBalance} {currencyCode} Adj.
-                        </p>
-                      )}
+                      {currencyCode &&
+                        genesisRipplingEnabled &&
+                        adjustmentRate && (
+                          <p className="text-sm leading-5 text-gray-500">
+                            {new BigNumber(bobTokenBalance)
+                              .times(adjustmentRate)
+                              .toString()}{' '}
+                            {currencyCode} Adj.
+                          </p>
+                        )}
                     </div>
                   </div>
                 </div>
@@ -467,6 +490,11 @@ const StablecoinApp: React.FC = () => {
                       <p className="text-sm leading-5 text-gray-500">
                         {api.dropsToXrp(genesisBalance)} XRP
                       </p>
+                      {currencyCode && (
+                        <p className="text-sm leading-5 text-gray-500">
+                          {currencyCode} Adjustment Rate: {adjustmentRate}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -527,7 +555,7 @@ const StablecoinApp: React.FC = () => {
             )}
             {genesisRipplingEnabled &&
               (aliceTrustlineOpened || bobTrustlineOpened) && (
-                <div className="flex justify-center px-4 py-5 sm:px-6">
+                <div className="flex-col justify-center px-4 py-5 sm:px-6">
                   <div className="w-full">
                     <fieldset>
                       <legend className="block text-sm font-medium leading-5 text-gray-700">
@@ -604,6 +632,49 @@ const StablecoinApp: React.FC = () => {
                         Issue
                       </button>
                     </span>
+                  </div>
+                  <div className="pt-5 mt-5 border-t border-1 border-gray-200">
+                    <label htmlFor="adjustmentFactor">
+                      <span className="block text-sm font-medium leading-5 text-gray-700">
+                        Daily interest rate
+                      </span>
+                      <div className="flex items-center">
+                        <div className="relative rounded-md shadow-sm">
+                          <input
+                            id="adjustmentFactor"
+                            placeholder="0.01"
+                            onChange={(e): void => {
+                              setAdjustmentFactorInput(e.currentTarget.value)
+                            }}
+                            className="form-input block w-full text-sm leading-5"
+                          />
+                        </div>
+                        <span className="inline-flex rounded-md shadow-sm mt-0 ml-3 w-auto">
+                          <button
+                            onClick={() => {
+                              if (adjustmentFactorInput && genesis) {
+                                setDailyInterestRate(
+                                  genesis.address,
+                                  genesis.secret,
+                                  adjustmentFactorInput,
+                                )
+                              }
+                            }}
+                            disabled={!adjustmentFactorInput}
+                            type="button"
+                            className={classnames(
+                              'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 w-auto text-sm leading-5',
+                              {
+                                'bg-indigo-600 hover:bg-indigo-500 focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700': adjustmentFactorInput,
+                                'bg-indigo-200 cursor-not-allowed': !adjustmentFactorInput,
+                              },
+                            )}
+                          >
+                            Submit Interest
+                          </button>
+                        </span>
+                      </div>
+                    </label>
                   </div>
                 </div>
               )}
