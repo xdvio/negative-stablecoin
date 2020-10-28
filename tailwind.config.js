@@ -1,3 +1,5 @@
+const defaultTheme = require('tailwindcss/defaultTheme')
+
 module.exports = {
   purge: ['./src/**/*.tsx', './src/**/*.css'],
   plugins: [require('@tailwindcss/ui')],
