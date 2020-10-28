@@ -20,6 +20,107 @@ export const sleep = async (milliseconds: number): Promise<void> => {
   return new Promise((resolve) => setTimeout(resolve, milliseconds))
 }
 
+export const enableRippling = async (
+  genesisAddress: string,
+  genesisSecret: string,
+): Promise<void> => {
+  const preppedSettings = await api.prepareSettings(genesisAddress, {
+    defaultRipple: true,
+  })
+  const submittedSettings = await api.submit(
+    api.sign(preppedSettings.txJSON, genesisSecret).signedTransaction,
+  )
+  console.log('Submitted Set Default Ripple', submittedSettings)
+}
+
+export const openTrustline = async (
+  sourceAddress: string,
+  sourceSecret: string,
+  genesisAddress: string,
+  currency: string,
+): Promise<void> => {
+  const preparedTrustline = await api.prepareTrustline(sourceAddress, {
+    currency,
+    counterparty: genesisAddress,
+    limit: '100000',
+    ripplingDisabled: false,
+  })
+
+  const signature = api.sign(preparedTrustline.txJSON, sourceSecret)
+    .signedTransaction
+
+  const submitResponse = await api.submit(signature)
+
+  console.log('Trustline Submit Response', submitResponse)
+}
+
+export const issueTokens = async (
+  genesisAddress: string,
+  genesisSecret: string,
+  destinationAddress: string,
+  currency: string,
+  value: string,
+): Promise<void> => {
+  const preparedTokenIssuance = await api.preparePayment(genesisAddress, {
+    source: {
+      address: genesisAddress,
+      maxAmount: {
+        value,
+        currency,
+        counterparty: genesisAddress,
+      },
+    },
+    destination: {
+      address: destinationAddress,
+      amount: {
+        value,
+        currency,
+        counterparty: genesisAddress,
+      },
+    },
+  })
+  const issuanceResponse = await api.submit(
+    api.sign(preparedTokenIssuance.txJSON, genesisSecret).signedTransaction,
+  )
+
+  console.log('Issuance Submition Response', issuanceResponse)
+}
+
+interface TokenSend {
+  sourceAddress: string
+  sourceSecret: string
+  destinationAddress: string
+  genesisAddress: string
+  currency: string
+  value: string
+}
+
+export const sendTokens = async (data: TokenSend): Promise<void> => {
+  const preparedTokenPayment = await api.preparePayment(data.sourceAddress, {
+    source: {
+      address: data.sourceAddress,
+      maxAmount: {
+        value: data.value,
+        currency: data.currency,
+        counterparty: data.genesisAddress,
+      },
+    },
+    destination: {
+      address: data.destinationAddress,
+      amount: {
+        value: data.value,
+        currency: data.currency,
+        counterparty: data.genesisAddress,
+      },
+    },
+  })
+  const tokenPaymentResponse = await api.submit(
+    api.sign(preparedTokenPayment.txJSON, data.sourceSecret).signedTransaction,
+  )
+
+  console.log('Token Payment Response', tokenPaymentResponse)
+}
+
 /**
  * Requests funds from the faucet to be sent to the given address
  * @param address The address we want funded
