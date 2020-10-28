@@ -2,6 +2,9 @@
 import axios from 'axios'
 import bigInt from 'big-integer'
 import { RippleAPI } from 'ripple-lib'
+import { BigNumber } from 'bignumber.js'
+
+BigNumber.set({ DECIMAL_PLACES: 10, ROUNDING_MODE: 4 })
 
 const testnetFaucetAddress = 'rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe'
 
@@ -62,12 +65,16 @@ export const issueTokens = async (
   destinationAddress: string,
   currency: string,
   value: string,
+  adjustmentRate: number,
 ): Promise<void> => {
+  const adjustedValue = new BigNumber(value)
+    .dividedBy(adjustmentRate)
+    .toString()
   const preparedTokenIssuance = await api.preparePayment(genesisAddress, {
     source: {
       address: genesisAddress,
       maxAmount: {
-        value,
+        value: adjustedValue,
         currency,
         counterparty: genesisAddress,
       },
@@ -75,7 +82,7 @@ export const issueTokens = async (
     destination: {
       address: destinationAddress,
       amount: {
-        value,
+        value: adjustedValue,
         currency,
         counterparty: genesisAddress,
       },
@@ -95,14 +102,18 @@ interface TokenSend {
   genesisAddress: string
   currency: string
   value: string
+  adjustmentRate: number
 }
 
 export const sendTokens = async (data: TokenSend): Promise<void> => {
+  const value = new BigNumber(data.value)
+    .dividedBy(data.adjustmentRate)
+    .toString()
   const preparedTokenPayment = await api.preparePayment(data.sourceAddress, {
     source: {
       address: data.sourceAddress,
       maxAmount: {
-        value: data.value,
+        value,
         currency: data.currency,
         counterparty: data.genesisAddress,
       },
@@ -110,7 +121,7 @@ export const sendTokens = async (data: TokenSend): Promise<void> => {
     destination: {
       address: data.destinationAddress,
       amount: {
-        value: data.value,
+        value,
         currency: data.currency,
         counterparty: data.genesisAddress,
       },
@@ -203,7 +214,6 @@ export const fundFromFaucet = async (
         xrpBalance: '0',
       }
     })
-    console.log(accountInfo)
 
     // Request our current balance
     let currentBalance
@@ -214,6 +224,7 @@ export const fundFromFaucet = async (
     }
     // If our current balance has changed then return
     if (startingBalance.notEquals(currentBalance)) {
+      console.log('Funded by faucet:', accountInfo)
       return
     }
 

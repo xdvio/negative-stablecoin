@@ -292,6 +292,7 @@ const StablecoinApp: React.FC = () => {
                               value: aliceToBobValue,
                               currency: currencyCode,
                               genesisAddress: genesis.address,
+                              adjustmentRate,
                             })
                           }
                         }}
@@ -438,6 +439,7 @@ const StablecoinApp: React.FC = () => {
                               value: bobToAliceValue,
                               currency: currencyCode,
                               genesisAddress: genesis.address,
+                              adjustmentRate,
                             })
                           }
                         }}
@@ -624,6 +626,7 @@ const StablecoinApp: React.FC = () => {
                                 address,
                                 currencyCode,
                                 tokenIssuanceAmount,
+                                adjustmentRate,
                               )
                             }
                           }
