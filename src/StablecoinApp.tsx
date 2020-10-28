@@ -6,7 +6,9 @@ import {
   enableRippling,
   fundFromFaucet,
   initWS,
+  issueTokens,
   openTrustline,
+  sendTokens,
 } from './utils/xrp'
 
 const StablecoinApp: React.FC = () => {
@@ -27,8 +29,8 @@ const StablecoinApp: React.FC = () => {
   const [aliceBalance, setAliceBalance] = useState<string>('0')
   const [bobBalance, setBobBalance] = useState<string>('0')
   const [genesisBalance, setGenesisBalance] = useState<string>('0')
-  const [aliceTokenBalance] = useState<string>('0')
-  const [bobTokenBalance] = useState<string>('0')
+  const [aliceTokenBalance, setAliceTokenBalance] = useState<string>('0')
+  const [bobTokenBalance, setBobTokenBalance] = useState<string>('0')
 
   const [aliceTrustlineOpened, setAliceTrustlineOpened] = useState<boolean>(
     false,
@@ -40,6 +42,13 @@ const StablecoinApp: React.FC = () => {
 
   const [currencyCodeInput, setCurrencyCodeInput] = useState<string>()
   const [currencyCode, setCurrencyCode] = useState<string>()
+
+  const [tokenIssuanceDestination, setTokenIssuanceDestination] = useState<
+    string
+  >()
+  const [tokenIssuanceAmount, setTokenIssuanceAmount] = useState<string>()
+  const [aliceToBobValue, setAliceToBobValue] = useState<string>()
+  const [bobToAliceValue, setBobToAliceValue] = useState<string>()
 
   useEffect(() => {
     const init = async (): Promise<void> => {
@@ -95,6 +104,17 @@ const StablecoinApp: React.FC = () => {
                 new BigNumber(prevBalance).minus(fee).toString(),
               )
               setAliceTrustlineOpened(true)
+            } else if (transactionType === 'Payment') {
+              setAliceBalance((prevBalance) =>
+                new BigNumber(prevBalance).minus(fee).toString(),
+              )
+              const value = event.transaction.Amount.value as string
+              setAliceTokenBalance((prevBalance) =>
+                new BigNumber(prevBalance).minus(value).toString(),
+              )
+              setBobTokenBalance((prevBalance) =>
+                new BigNumber(prevBalance).plus(value).toString(),
+              )
             }
           } else if (account === bobAccount.address) {
             if (transactionType === 'TrustSet') {
@@ -102,6 +122,17 @@ const StablecoinApp: React.FC = () => {
                 new BigNumber(prevBalance).minus(fee).toString(),
               )
               setBobTrustlineOpened(true)
+            } else if (transactionType === 'Payment') {
+              setBobBalance((prevBalance) =>
+                new BigNumber(prevBalance).minus(fee).toString(),
+              )
+              const value = event.transaction.Amount.value as string
+              setBobTokenBalance((prevBalance) =>
+                new BigNumber(prevBalance).minus(value).toString(),
+              )
+              setAliceTokenBalance((prevBalance) =>
+                new BigNumber(prevBalance).plus(value).toString(),
+              )
             }
           } else if (account === genesisAccount.address) {
             if (transactionType === 'AccountSet') {
@@ -109,6 +140,21 @@ const StablecoinApp: React.FC = () => {
                 new BigNumber(prevBalance).minus(fee).toString(),
               )
               setGenesisRipplingEnabled(true)
+            } else if (transactionType === 'Payment') {
+              setGenesisBalance((prevBalance) =>
+                new BigNumber(prevBalance).minus(fee).toString(),
+              )
+              const destination = event.transaction.Destination as string
+              const value = event.transaction.Amount.value as string
+              if (destination === aliceAccount.address) {
+                setAliceTokenBalance((prevBalance) =>
+                  new BigNumber(prevBalance).plus(value).toString(),
+                )
+              } else if (destination === bobAccount.address) {
+                setBobTokenBalance((prevBalance) =>
+                  new BigNumber(prevBalance).plus(value).toString(),
+                )
+              }
             }
           }
         })
@@ -117,25 +163,6 @@ const StablecoinApp: React.FC = () => {
 
     init().catch((err) => console.error('Failed to init wallet', err))
   }, [])
-
-  // await issueTokens(
-  //   genesisAccount.address,
-  //   genesisAccount.secret,
-  //   aliceAccount.address,
-  //   'IDK',
-  //   '100',
-  // )
-
-  // await sleep(10000)
-
-  // await sendTokens({
-  //   sourceAddress: aliceAccount.address,
-  //   sourceSecret: aliceAccount.secret,
-  //   destinationAddress: bobAccount.address,
-  //   value: '1',
-  //   currency: 'IDK',
-  //   genesisAddress: genesisAccount.address,
-  // })
 
   return (
     <div className="bg-gray-100 py-8 min-h-screen min-w-screen">
@@ -162,7 +189,12 @@ const StablecoinApp: React.FC = () => {
                       </p>
                       {currencyCode && genesisRipplingEnabled && (
                         <p className="text-sm leading-5 text-gray-500">
-                          {aliceTokenBalance} {currencyCode}
+                          {aliceTokenBalance} {currencyCode} on Ledger
+                        </p>
+                      )}
+                      {currencyCode && genesisRipplingEnabled && (
+                        <p className="text-sm leading-5 text-gray-500">
+                          {aliceTokenBalance} {currencyCode} Adj.
                         </p>
                       )}
                     </div>
@@ -188,12 +220,12 @@ const StablecoinApp: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      if (alice && genesis) {
+                      if (alice && genesis && currencyCode) {
                         openTrustline(
                           alice.address,
                           alice.secret,
                           genesis.address,
-                          'IDK',
+                          currencyCode,
                         )
                       }
                     }}
@@ -202,6 +234,77 @@ const StablecoinApp: React.FC = () => {
                     Open Trustline
                   </button>
                 </span>
+              </div>
+            )}
+            {aliceTokenBalance !== '0' && bobTrustlineOpened && (
+              <div className="flex justify-center px-4 py-5 sm:px-6">
+                <label htmlFor="aliceTokenValue">
+                  <span className="block text-sm font-medium leading-5 text-gray-700">
+                    Send {currencyCode} to Bob
+                  </span>
+                  <div className="flex items-center">
+                    <div className="relative rounded-md shadow-sm">
+                      <input
+                        id="aliceTokenValue"
+                        placeholder="Amount to send"
+                        type="number"
+                        onChange={(e): void => {
+                          setAliceToBobValue(e.currentTarget.value)
+                        }}
+                        className="form-input block w-full text-sm leading-5"
+                      />
+                    </div>
+                    <span className="inline-flex rounded-md shadow-sm mt-0 ml-3 w-auto">
+                      <button
+                        onClick={() => {
+                          if (
+                            alice &&
+                            bob &&
+                            genesis &&
+                            aliceToBobValue &&
+                            new BigNumber(aliceTokenBalance)
+                              .minus(aliceToBobValue)
+                              .isGreaterThanOrEqualTo(0) &&
+                            currencyCode
+                          ) {
+                            sendTokens({
+                              sourceAddress: alice.address,
+                              sourceSecret: alice.secret,
+                              destinationAddress: bob.address,
+                              value: aliceToBobValue,
+                              currency: currencyCode,
+                              genesisAddress: genesis.address,
+                            })
+                          }
+                        }}
+                        disabled={
+                          !aliceToBobValue ||
+                          new BigNumber(aliceTokenBalance)
+                            .minus(aliceToBobValue)
+                            .isLessThan(0)
+                        }
+                        type="button"
+                        className={classnames(
+                          'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 w-auto text-sm leading-5',
+                          {
+                            'bg-indigo-600 hover:bg-indigo-500 focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700':
+                              aliceToBobValue &&
+                              new BigNumber(aliceTokenBalance)
+                                .minus(aliceToBobValue)
+                                .isGreaterThanOrEqualTo(0),
+                            'bg-indigo-200 cursor-not-allowed':
+                              !aliceToBobValue ||
+                              new BigNumber(aliceTokenBalance)
+                                .minus(aliceToBobValue)
+                                .isLessThan(0),
+                          },
+                        )}
+                      >
+                        Send
+                      </button>
+                    </span>
+                  </div>
+                </label>
               </div>
             )}
           </li>
@@ -230,6 +333,11 @@ const StablecoinApp: React.FC = () => {
                           {bobTokenBalance} {currencyCode}
                         </p>
                       )}
+                      {currencyCode && genesisRipplingEnabled && (
+                        <p className="text-sm leading-5 text-gray-500">
+                          {bobTokenBalance} {currencyCode} Adj.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -253,12 +361,12 @@ const StablecoinApp: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      if (bob && genesis) {
+                      if (bob && genesis && currencyCode) {
                         openTrustline(
                           bob.address,
                           bob.secret,
                           genesis.address,
-                          'IDK',
+                          currencyCode,
                         )
                       }
                     }}
@@ -267,6 +375,77 @@ const StablecoinApp: React.FC = () => {
                     Open Trustline
                   </button>
                 </span>
+              </div>
+            )}
+            {bobTokenBalance !== '0' && aliceTrustlineOpened && (
+              <div className="flex justify-center px-4 py-5 sm:px-6">
+                <label htmlFor="bobTokenValue">
+                  <span className="block text-sm font-medium leading-5 text-gray-700">
+                    Send {currencyCode} to Alice
+                  </span>
+                  <div className="flex items-center">
+                    <div className="relative rounded-md shadow-sm">
+                      <input
+                        id="bobTokenValue"
+                        placeholder="Amount to send"
+                        type="number"
+                        onChange={(e): void => {
+                          setBobToAliceValue(e.currentTarget.value)
+                        }}
+                        className="form-input block w-full text-sm leading-5"
+                      />
+                    </div>
+                    <span className="inline-flex rounded-md shadow-sm mt-0 ml-3 w-auto">
+                      <button
+                        onClick={() => {
+                          if (
+                            alice &&
+                            bob &&
+                            genesis &&
+                            bobToAliceValue &&
+                            new BigNumber(bobTokenBalance)
+                              .minus(bobToAliceValue)
+                              .isGreaterThanOrEqualTo(0) &&
+                            currencyCode
+                          ) {
+                            sendTokens({
+                              sourceAddress: bob.address,
+                              sourceSecret: bob.secret,
+                              destinationAddress: alice.address,
+                              value: bobToAliceValue,
+                              currency: currencyCode,
+                              genesisAddress: genesis.address,
+                            })
+                          }
+                        }}
+                        disabled={
+                          !bobToAliceValue ||
+                          new BigNumber(bobTokenBalance)
+                            .minus(bobToAliceValue)
+                            .isLessThan(0)
+                        }
+                        type="button"
+                        className={classnames(
+                          'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 w-auto text-sm leading-5',
+                          {
+                            'bg-indigo-600 hover:bg-indigo-500 focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700':
+                              bobToAliceValue &&
+                              new BigNumber(bobTokenBalance)
+                                .minus(bobToAliceValue)
+                                .isGreaterThanOrEqualTo(0),
+                            'bg-indigo-200 cursor-not-allowed':
+                              !bobToAliceValue ||
+                              new BigNumber(bobTokenBalance)
+                                .minus(bobToAliceValue)
+                                .isLessThan(0),
+                          },
+                        )}
+                      >
+                        Send
+                      </button>
+                    </span>
+                  </div>
+                </label>
               </div>
             )}
           </li>
@@ -288,11 +467,6 @@ const StablecoinApp: React.FC = () => {
                       <p className="text-sm leading-5 text-gray-500">
                         {api.dropsToXrp(genesisBalance)} XRP
                       </p>
-                      {currencyCode && genesisRipplingEnabled && (
-                        <p className="text-sm leading-5 text-gray-500">
-                          &infin; {currencyCode}
-                        </p>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -360,20 +534,31 @@ const StablecoinApp: React.FC = () => {
                         Issue {currencyCode}
                       </legend>
                       <div className="mt-1 rounded-md shadow-sm">
-                        <div>
-                          <select
-                            aria-label="Account to send to"
-                            className="form-select relative block w-full rounded-none rounded-t-md bg-transparent focus:z-10 transition ease-in-out duration-150 sm:text-sm sm:leading-5"
-                          >
-                            {aliceTrustlineOpened && <option>Alice</option>}
-                            {bobTrustlineOpened && <option>Bob</option>}
-                          </select>
-                        </div>
+                        <select
+                          aria-label="Account to send to"
+                          value={tokenIssuanceDestination}
+                          className="form-select relative block w-full rounded-none rounded-t-md bg-transparent focus:z-10 transition ease-in-out duration-150 sm:text-sm sm:leading-5"
+                          onChange={(e): void => {
+                            setTokenIssuanceDestination(e.currentTarget.value)
+                          }}
+                        >
+                          {aliceTrustlineOpened && <option>Alice</option>}
+                          {bobTrustlineOpened && <option>Bob</option>}
+                        </select>
                         <div className="-mt-px">
                           <input
                             aria-label="Token Amount"
                             className="form-input relative block w-full rounded-none rounded-b-md bg-transparent focus:z-10 transition ease-in-out duration-150 sm:text-sm sm:leading-5"
                             placeholder="Amount to send"
+                            type="number"
+                            onChange={(e): void => {
+                              if (!tokenIssuanceDestination) {
+                                setTokenIssuanceDestination(
+                                  aliceTrustlineOpened ? 'Alice' : 'Bob',
+                                )
+                              }
+                              setTokenIssuanceAmount(e.currentTarget.value)
+                            }}
                           />
                         </div>
                       </div>
@@ -381,7 +566,40 @@ const StablecoinApp: React.FC = () => {
                     <span className="mt-1 block w-full rounded-md shadow-sm">
                       <button
                         type="button"
-                        className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700 transition duration-150 ease-in-out"
+                        disabled={
+                          !tokenIssuanceAmount || !tokenIssuanceDestination
+                        }
+                        className={classnames(
+                          'w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none transition duration-150 ease-in-out',
+                          {
+                            'bg-indigo-600 hover:bg-indigo-500 focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700':
+                              tokenIssuanceAmount && tokenIssuanceDestination,
+                            'bg-indigo-200 cursor-not-allowed':
+                              !tokenIssuanceAmount || !tokenIssuanceDestination,
+                          },
+                        )}
+                        onClick={() => {
+                          if (
+                            tokenIssuanceAmount &&
+                            tokenIssuanceDestination &&
+                            genesis &&
+                            currencyCode
+                          ) {
+                            const address =
+                              tokenIssuanceDestination === 'Alice'
+                                ? alice?.address
+                                : bob?.address
+                            if (address) {
+                              issueTokens(
+                                genesis.address,
+                                genesis.secret,
+                                address,
+                                currencyCode,
+                                tokenIssuanceAmount,
+                              )
+                            }
+                          }
+                        }}
                       >
                         Issue
                       </button>
