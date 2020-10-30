@@ -178,23 +178,23 @@ const StablecoinApp: React.FC = () => {
   }, [])
 
   return (
-    <div className="bg-gray-100 py-8 min-h-screen min-w-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 items-start">
-          <li className="bg-white overflow-hidden sm:rounded-lg sm:shadow">
-            <div className="bg-white px-4 py-5 border-b border-gray-200 sm:px-6">
-              <div className="-ml-4 -mt-4 flex justify-between items-center flex-wrap sm:flex-no-wrap">
-                <div className="ml-4 mt-4">
+    <div className="min-h-screen py-8 bg-gray-100 min-w-screen">
+      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <ul className="grid items-start grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <li className="overflow-hidden bg-white sm:rounded-lg sm:shadow">
+            <div className="px-4 py-5 bg-white border-b border-gray-200 sm:px-6">
+              <div className="flex flex-wrap items-center justify-between -mt-4 -ml-4 sm:flex-no-wrap">
+                <div className="mt-4 ml-4">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
                       <img
-                        className="h-12 w-12 rounded-full"
+                        className="w-12 h-12 rounded-full"
                         src="https://images.unsplash.com/photo-1498551172505-8ee7ad69f235?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=4&w=256&h=256&q=60"
                         alt=""
                       />
                     </div>
                     <div className="ml-4">
-                      <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      <h3 className="text-lg font-medium leading-6 text-gray-900">
                         Alice
                       </h3>
                       <p className="text-sm leading-5 text-gray-500">
@@ -247,7 +247,7 @@ const StablecoinApp: React.FC = () => {
                         )
                       }
                     }}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm leading-5 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700 transition ease-in-out duration-150"
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium leading-5 text-white transition duration-150 ease-in-out bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-500 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700"
                   >
                     Open Trustline
                   </button>
@@ -269,10 +269,10 @@ const StablecoinApp: React.FC = () => {
                         onChange={(e): void => {
                           setAliceToBobValue(e.currentTarget.value)
                         }}
-                        className="form-input block w-full text-sm leading-5"
+                        className="block w-full text-sm leading-5 form-input"
                       />
                     </div>
-                    <span className="inline-flex rounded-md shadow-sm mt-0 ml-3 w-auto">
+                    <span className="inline-flex w-auto mt-0 ml-3 rounded-md shadow-sm">
                       <button
                         onClick={() => {
                           if (
@@ -304,7 +304,7 @@ const StablecoinApp: React.FC = () => {
                         }
                         type="button"
                         className={classnames(
-                          'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 w-auto text-sm leading-5',
+                          'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 text-sm leading-5',
                           {
                             'bg-indigo-600 hover:bg-indigo-500 focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700':
                               aliceToBobValue &&
@@ -328,20 +328,20 @@ const StablecoinApp: React.FC = () => {
             )}
           </li>
 
-          <li className="bg-white overflow-hidden sm:rounded-lg sm:shadow">
-            <div className="bg-white px-4 py-5 border-b border-gray-200 sm:px-6">
-              <div className="-ml-4 -mt-4 flex justify-between items-center flex-wrap sm:flex-no-wrap">
-                <div className="ml-4 mt-4">
+          <li className="overflow-hidden bg-white sm:rounded-lg sm:shadow">
+            <div className="px-4 py-5 bg-white border-b border-gray-200 sm:px-6">
+              <div className="flex flex-wrap items-center justify-between -mt-4 -ml-4 sm:flex-no-wrap">
+                <div className="mt-4 ml-4">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
                       <img
-                        className="h-12 w-12 rounded-full"
+                        className="w-12 h-12 rounded-full"
                         src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
                         alt=""
                       />
                     </div>
                     <div className="ml-4">
-                      <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      <h3 className="text-lg font-medium leading-6 text-gray-900">
                         Bob
                       </h3>
                       <p className="text-sm leading-5 text-gray-500">
@@ -394,7 +394,7 @@ const StablecoinApp: React.FC = () => {
                         )
                       }
                     }}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm leading-5 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700 transition ease-in-out duration-150"
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium leading-5 text-white transition duration-150 ease-in-out bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-500 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700"
                   >
                     Open Trustline
                   </button>
@@ -416,10 +416,10 @@ const StablecoinApp: React.FC = () => {
                         onChange={(e): void => {
                           setBobToAliceValue(e.currentTarget.value)
                         }}
-                        className="form-input block w-full text-sm leading-5"
+                        className="block w-full text-sm leading-5 form-input"
                       />
                     </div>
-                    <span className="inline-flex rounded-md shadow-sm mt-0 ml-3 w-auto">
+                    <span className="inline-flex w-auto mt-0 ml-3 rounded-md shadow-sm">
                       <button
                         onClick={() => {
                           if (
@@ -451,7 +451,7 @@ const StablecoinApp: React.FC = () => {
                         }
                         type="button"
                         className={classnames(
-                          'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 w-auto text-sm leading-5',
+                          'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 text-sm leading-5',
                           {
                             'bg-indigo-600 hover:bg-indigo-500 focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700':
                               bobToAliceValue &&
@@ -475,18 +475,18 @@ const StablecoinApp: React.FC = () => {
             )}
           </li>
 
-          <li className="bg-white overflow-hidden sm:rounded-lg sm:shadow">
-            <div className="bg-white px-4 py-5 border-b border-gray-200 sm:px-6">
-              <div className="-ml-4 -mt-4 flex justify-between items-center flex-wrap sm:flex-no-wrap">
-                <div className="ml-4 mt-4">
+          <li className="overflow-hidden bg-white sm:rounded-lg sm:shadow">
+            <div className="px-4 py-5 bg-white border-b border-gray-200 sm:px-6">
+              <div className="flex flex-wrap items-center justify-between -mt-4 -ml-4 sm:flex-no-wrap">
+                <div className="mt-4 ml-4">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <div className="h-12 w-12 rounded-full bg-green-400 text-white flex justify-center items-center">
+                      <div className="flex items-center justify-center w-12 h-12 text-white bg-green-400 rounded-full">
                         <span className="text-xs">Genesis</span>
                       </div>
                     </div>
                     <div className="ml-4">
-                      <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      <h3 className="text-lg font-medium leading-6 text-gray-900">
                         Genesis Account
                       </h3>
                       <p className="text-sm leading-5 text-gray-500">
@@ -525,10 +525,10 @@ const StablecoinApp: React.FC = () => {
                         onChange={(e): void => {
                           setCurrencyCodeInput(e.currentTarget.value)
                         }}
-                        className="form-input block w-full text-sm leading-5"
+                        className="block w-full text-sm leading-5 form-input"
                       />
                     </div>
-                    <span className="inline-flex rounded-md shadow-sm mt-0 ml-3 w-auto">
+                    <span className="inline-flex w-auto mt-0 ml-3 rounded-md shadow-sm">
                       <button
                         onClick={() => {
                           if (genesis && currencyCodeInput?.length === 3) {
@@ -539,7 +539,7 @@ const StablecoinApp: React.FC = () => {
                         disabled={currencyCodeInput?.length !== 3}
                         type="button"
                         className={classnames(
-                          'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 w-auto text-sm leading-5',
+                          'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 text-sm leading-5',
                           {
                             'bg-indigo-600 hover:bg-indigo-500 focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700':
                               currencyCodeInput?.length === 3,
@@ -567,7 +567,7 @@ const StablecoinApp: React.FC = () => {
                         <select
                           aria-label="Account to send to"
                           value={tokenIssuanceDestination}
-                          className="form-select relative block w-full rounded-none rounded-t-md bg-transparent focus:z-10 transition ease-in-out duration-150 sm:text-sm sm:leading-5"
+                          className="relative block w-full transition duration-150 ease-in-out bg-transparent rounded-none form-select rounded-t-md focus:z-10 sm:text-sm sm:leading-5"
                           onChange={(e): void => {
                             setTokenIssuanceDestination(e.currentTarget.value)
                           }}
@@ -578,7 +578,7 @@ const StablecoinApp: React.FC = () => {
                         <div className="-mt-px">
                           <input
                             aria-label="Token Amount"
-                            className="form-input relative block w-full rounded-none rounded-b-md bg-transparent focus:z-10 transition ease-in-out duration-150 sm:text-sm sm:leading-5"
+                            className="relative block w-full transition duration-150 ease-in-out bg-transparent rounded-none form-input rounded-b-md focus:z-10 sm:text-sm sm:leading-5"
                             placeholder="Amount to send"
                             type="number"
                             onChange={(e): void => {
@@ -593,7 +593,7 @@ const StablecoinApp: React.FC = () => {
                         </div>
                       </div>
                     </fieldset>
-                    <span className="mt-1 block w-full rounded-md shadow-sm">
+                    <span className="block w-full mt-1 rounded-md shadow-sm">
                       <button
                         type="button"
                         disabled={
@@ -636,7 +636,7 @@ const StablecoinApp: React.FC = () => {
                       </button>
                     </span>
                   </div>
-                  <div className="pt-5 mt-5 border-t border-1 border-gray-200">
+                  <div className="pt-5 mt-5 border-t border-gray-200 border-1">
                     <label htmlFor="adjustmentFactor">
                       <span className="block text-sm font-medium leading-5 text-gray-700">
                         Daily interest rate
@@ -649,10 +649,10 @@ const StablecoinApp: React.FC = () => {
                             onChange={(e): void => {
                               setAdjustmentFactorInput(e.currentTarget.value)
                             }}
-                            className="form-input block w-full text-sm leading-5"
+                            className="block w-full text-sm leading-5 form-input"
                           />
                         </div>
-                        <span className="inline-flex rounded-md shadow-sm mt-0 ml-3 w-auto">
+                        <span className="inline-flex w-auto mt-0 ml-3 rounded-md shadow-sm">
                           <button
                             onClick={() => {
                               if (adjustmentFactorInput && genesis) {
@@ -666,7 +666,7 @@ const StablecoinApp: React.FC = () => {
                             disabled={!adjustmentFactorInput}
                             type="button"
                             className={classnames(
-                              'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 w-auto text-sm leading-5',
+                              'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 text-sm leading-5',
                               {
                                 'bg-indigo-600 hover:bg-indigo-500 focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700': adjustmentFactorInput,
                                 'bg-indigo-200 cursor-not-allowed': !adjustmentFactorInput,
