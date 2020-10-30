@@ -98,6 +98,7 @@ const StablecoinApp: React.FC = () => {
 
         api.connection.on('transaction', (event) => {
           console.log(event)
+          if (event.engine_result !== 'tesSUCCESS') return
 
           const account = event.transaction.Account as string
           const transactionType = event.transaction.TransactionType as string
