@@ -11,6 +11,7 @@ import {
   openTrustline,
   sendTokens,
   setDailyInterestRate,
+  formatNumber,
 } from './utils/xrp'
 
 const StablecoinApp: React.FC = () => {
@@ -199,20 +200,23 @@ const StablecoinApp: React.FC = () => {
                         Alice
                       </h3>
                       <p className="text-sm leading-5 text-gray-500">
-                        {api.dropsToXrp(aliceBalance)} XRP
+                        {formatNumber(api.dropsToXrp(aliceBalance))} XRP
                       </p>
                       {currencyCode && genesisRipplingEnabled && (
                         <p className="text-sm leading-5 text-gray-500">
-                          {aliceTokenBalance} {currencyCode} on ledger
+                          {formatNumber(aliceTokenBalance)} {currencyCode} on
+                          ledger
                         </p>
                       )}
                       {currencyCode &&
                         genesisRipplingEnabled &&
                         adjustmentRate && (
                           <p className="text-sm leading-5 text-gray-500">
-                            {new BigNumber(aliceTokenBalance)
-                              .times(adjustmentRate)
-                              .toString()}{' '}
+                            {formatNumber(
+                              new BigNumber(aliceTokenBalance)
+                                .times(adjustmentRate)
+                                .toString(),
+                            )}{' '}
                             {currencyCode} Adj.
                           </p>
                         )}
@@ -346,20 +350,23 @@ const StablecoinApp: React.FC = () => {
                         Bob
                       </h3>
                       <p className="text-sm leading-5 text-gray-500">
-                        {api.dropsToXrp(bobBalance)} XRP
+                        {formatNumber(api.dropsToXrp(bobBalance))} XRP
                       </p>
                       {currencyCode && genesisRipplingEnabled && (
                         <p className="text-sm leading-5 text-gray-500">
-                          {bobTokenBalance} {currencyCode} on ledger
+                          {formatNumber(bobTokenBalance)} {currencyCode} on
+                          ledger
                         </p>
                       )}
                       {currencyCode &&
                         genesisRipplingEnabled &&
                         adjustmentRate && (
                           <p className="text-sm leading-5 text-gray-500">
-                            {new BigNumber(bobTokenBalance)
-                              .times(adjustmentRate)
-                              .toString()}{' '}
+                            {formatNumber(
+                              new BigNumber(bobTokenBalance)
+                                .times(adjustmentRate)
+                                .toString(),
+                            )}{' '}
                             {currencyCode} Adj.
                           </p>
                         )}
@@ -491,11 +498,12 @@ const StablecoinApp: React.FC = () => {
                         Genesis Account
                       </h3>
                       <p className="text-sm leading-5 text-gray-500">
-                        {api.dropsToXrp(genesisBalance)} XRP
+                        {formatNumber(api.dropsToXrp(genesisBalance))} XRP
                       </p>
                       {currencyCode && (
                         <p className="text-sm leading-5 text-gray-500">
-                          {currencyCode} Adjustment Rate: {adjustmentRate}
+                          {currencyCode} Adjustment Rate:{' '}
+                          {formatNumber(adjustmentRate.toString())}
                         </p>
                       )}
                     </div>

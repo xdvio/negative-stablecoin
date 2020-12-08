@@ -12,6 +12,14 @@ export const api = new RippleAPI({
   server: 'wss://s.altnet.rippletest.net:51233',
 })
 
+export const formatNumber = (num: string): string => {
+  return parseFloat(num).toLocaleString('en', {
+    useGrouping: true,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 6,
+  })
+}
+
 export const initWS = async (): Promise<boolean> => {
   try {
     await api.connect()
