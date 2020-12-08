@@ -12,6 +12,7 @@ import {
   sendTokens,
   setDailyInterestRate,
   formatNumber,
+  getAdjustmentRate,
 } from './utils/xrp'
 
 const StablecoinApp: React.FC = () => {
@@ -92,7 +93,7 @@ const StablecoinApp: React.FC = () => {
           fundFromFaucet(aliceAccount.address),
           fundFromFaucet(bobAccount.address),
         ]
-        await Promise.all(fundings)
+        const [minLedgerVersion] = await Promise.all(fundings)
         setAliceBalance('1000000000')
         setBobBalance('1000000000')
         setGenesisBalance('1000000000')
@@ -166,6 +167,18 @@ const StablecoinApp: React.FC = () => {
                 const dailyInterestRate = hexToUtf8(
                   event.transaction.Memos[0].Memo.MemoData,
                 ).split('=')[1]
+
+                // Read the ledger and print the adjustment rate
+                getAdjustmentRate(
+                  genesisAccount.address,
+                  minLedgerVersion,
+                ).then((calculatedAdjustmentRate) =>
+                  console.log(
+                    'Current Adjustment Rate:',
+                    calculatedAdjustmentRate,
+                  ),
+                )
+
                 setAdjustmentRate(
                   (prevRate) => prevRate * (1 - Number(dailyInterestRate)),
                 )

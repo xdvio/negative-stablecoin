@@ -3,6 +3,10 @@ import axios from 'axios'
 import bigInt from 'big-integer'
 import { RippleAPI } from 'ripple-lib'
 import { BigNumber } from 'bignumber.js'
+import {
+  FormattedPaymentTransaction,
+  FormattedTransactionType,
+} from 'ripple-lib/dist/npm/transaction/types'
 
 BigNumber.set({ DECIMAL_PLACES: 10, ROUNDING_MODE: 4 })
 
@@ -184,6 +188,40 @@ export const setDailyInterestRate = async (
   console.log('Adjustment Payment Response', adjustmentRatePaymentResponse)
 }
 
+const isPayment = (
+  transaction: FormattedTransactionType,
+): transaction is FormattedPaymentTransaction => {
+  return (transaction as FormattedPaymentTransaction).type === 'payment'
+}
+
+/**
+ * Requests transaction history from ledger and calculates the adjustment rate
+ * @param address The address we want to get the adjustment rate from
+ * @param minLedgerVersion The minimum ledger version to scan the history from. Usually the genesis ledger of the issued currency
+ */
+export const getAdjustmentRate = async (
+  address: string,
+  minLedgerVersion?: number,
+): Promise<number> => {
+  console.log(address, minLedgerVersion)
+  let adjustmentRate = 1
+  const transactions = await api.getTransactions(address, {
+    earliestFirst: true,
+    excludeFailures: true,
+    minLedgerVersion,
+  })
+  transactions.forEach((transaction) => {
+    if (isPayment(transaction) && transaction.specification.memos) {
+      transaction.specification.memos.forEach((memo) => {
+        if (memo.data?.startsWith('dailyInterestRate=')) {
+          adjustmentRate *= 1 - Number(memo.data.split('=')[1])
+        }
+      })
+    }
+  })
+  return adjustmentRate
+}
+
 /**
  * Requests funds from the faucet to be sent to the given address
  * @param address The address we want funded
@@ -191,7 +229,7 @@ export const setDailyInterestRate = async (
 export const fundFromFaucet = async (
   address: string,
   timeoutInSeconds = 20,
-): Promise<void> => {
+): Promise<number> => {
   // Balance prior to asking for more funds
 
   let startingBalance
@@ -218,22 +256,18 @@ export const fundFromFaucet = async (
 
     // Lookup account info
     const accountInfo = await api.getAccountInfo(address).catch(() => {
-      return {
-        xrpBalance: '0',
-      }
+      return undefined
     })
 
     // Request our current balance
-    let currentBalance
-    try {
-      currentBalance = bigInt(accountInfo.xrpBalance)
-    } catch {
-      currentBalance = bigInt('0')
-    }
-    // If our current balance has changed then return
-    if (startingBalance.notEquals(currentBalance)) {
-      console.log('Funded by faucet:', accountInfo)
-      return
+    if (accountInfo) {
+      const currentBalance = bigInt(accountInfo.xrpBalance)
+
+      // If our current balance has changed then return
+      if (startingBalance.notEquals(currentBalance)) {
+        console.log('Funded by faucet:', accountInfo)
+        return accountInfo.previousAffectingTransactionLedgerVersion
+      }
     }
 
     // In the future if we had a tx hash from the faucet
