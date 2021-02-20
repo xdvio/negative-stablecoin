@@ -151,7 +151,6 @@ const StablecoinApp: React.FC = () => {
               setGenesisBalance((prevBalance) =>
                 new BigNumber(prevBalance).minus(fee).toString(),
               )
-              const destination = event.transaction.Destination as string
               const value = event.transaction.Amount.value as string
               if (value) {
                 if (destination === aliceAccount.address) {
