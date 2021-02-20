@@ -2,15 +2,6 @@
 import axios from 'axios'
 import bigInt from 'big-integer'
 import { RippleAPI } from 'ripple-lib'
-import { BigNumber } from 'bignumber.js'
-import {
-  FormattedPaymentTransaction,
-  FormattedTransactionType,
-} from 'ripple-lib/dist/npm/transaction/types'
-
-BigNumber.set({ DECIMAL_PLACES: 10, ROUNDING_MODE: 4 })
-
-const testnetFaucetAddress = 'rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe'
 
 export const api = new RippleAPI({
   server: 'wss://s.altnet.rippletest.net:51233',
@@ -77,16 +68,12 @@ export const issueTokens = async (
   destinationAddress: string,
   currency: string,
   value: string,
-  adjustmentRate: number,
 ): Promise<void> => {
-  const adjustedValue = new BigNumber(value)
-    .dividedBy(adjustmentRate)
-    .toString()
   const preparedTokenIssuance = await api.preparePayment(genesisAddress, {
     source: {
       address: genesisAddress,
       maxAmount: {
-        value: adjustedValue,
+        value,
         currency,
         counterparty: genesisAddress,
       },
@@ -94,7 +81,7 @@ export const issueTokens = async (
     destination: {
       address: destinationAddress,
       amount: {
-        value: adjustedValue,
+        value,
         currency,
         counterparty: genesisAddress,
       },
@@ -114,18 +101,14 @@ interface TokenSend {
   genesisAddress: string
   currency: string
   value: string
-  adjustmentRate: number
 }
 
 export const sendTokens = async (data: TokenSend): Promise<void> => {
-  const value = new BigNumber(data.value)
-    .dividedBy(data.adjustmentRate)
-    .toString()
   const preparedTokenPayment = await api.preparePayment(data.sourceAddress, {
     source: {
       address: data.sourceAddress,
       maxAmount: {
-        value,
+        value: data.value,
         currency: data.currency,
         counterparty: data.genesisAddress,
       },
@@ -133,7 +116,7 @@ export const sendTokens = async (data: TokenSend): Promise<void> => {
     destination: {
       address: data.destinationAddress,
       amount: {
-        value,
+        value: data.value,
         currency: data.currency,
         counterparty: data.genesisAddress,
       },
@@ -148,78 +131,6 @@ export const sendTokens = async (data: TokenSend): Promise<void> => {
 
 export const hexToUtf8 = (hex: string): string => {
   return decodeURIComponent(`%${hex.match(/.{1,2}/g)?.join('%')}`)
-}
-
-export const setDailyInterestRate = async (
-  genesisAddress: string,
-  genesisSecret: string,
-  rate: string,
-): Promise<void> => {
-  const preparedAdjustmentRatePayment = await api.preparePayment(
-    genesisAddress,
-    {
-      source: {
-        address: genesisAddress,
-        maxAmount: {
-          value: '1',
-          currency: 'drops',
-        },
-      },
-      destination: {
-        address: testnetFaucetAddress,
-        amount: {
-          value: '1',
-          currency: 'drops',
-        },
-      },
-      memos: [
-        {
-          data: `dailyInterestRate=${rate}`,
-        },
-      ],
-    },
-  )
-
-  const adjustmentRatePaymentResponse = await api.submit(
-    api.sign(preparedAdjustmentRatePayment.txJSON, genesisSecret)
-      .signedTransaction,
-  )
-
-  console.log('Adjustment Payment Response', adjustmentRatePaymentResponse)
-}
-
-const isPayment = (
-  transaction: FormattedTransactionType,
-): transaction is FormattedPaymentTransaction => {
-  return (transaction as FormattedPaymentTransaction).type === 'payment'
-}
-
-/**
- * Requests transaction history from ledger and calculates the adjustment rate
- * @param address The address we want to get the adjustment rate from
- * @param minLedgerVersion The minimum ledger version to scan the history from. Usually the genesis ledger of the issued currency
- */
-export const getAdjustmentRate = async (
-  address: string,
-  minLedgerVersion?: number,
-): Promise<number> => {
-  console.log(address, minLedgerVersion)
-  let adjustmentRate = 1
-  const transactions = await api.getTransactions(address, {
-    earliestFirst: true,
-    excludeFailures: true,
-    minLedgerVersion,
-  })
-  transactions.forEach((transaction) => {
-    if (isPayment(transaction) && transaction.specification.memos) {
-      transaction.specification.memos.forEach((memo) => {
-        if (memo.data?.startsWith('dailyInterestRate=')) {
-          adjustmentRate *= 1 - Number(memo.data.split('=')[1])
-        }
-      })
-    }
-  })
-  return adjustmentRate
 }
 
 /**

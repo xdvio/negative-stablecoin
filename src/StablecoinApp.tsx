@@ -4,15 +4,12 @@ import classnames from 'classnames'
 import {
   api,
   enableRippling,
+  formatNumber,
   fundFromFaucet,
-  hexToUtf8,
   initWS,
   issueTokens,
   openTrustline,
   sendTokens,
-  setDailyInterestRate,
-  formatNumber,
-  getAdjustmentRate,
 } from './utils/xrp'
 
 const StablecoinApp: React.FC = () => {
@@ -53,8 +50,6 @@ const StablecoinApp: React.FC = () => {
   const [tokenIssuanceAmount, setTokenIssuanceAmount] = useState<string>()
   const [aliceToBobValue, setAliceToBobValue] = useState<string>()
   const [bobToAliceValue, setBobToAliceValue] = useState<string>()
-  const [adjustmentRate, setAdjustmentRate] = useState<number>(1)
-  const [adjustmentFactorInput, setAdjustmentFactorInput] = useState<string>()
 
   useEffect(() => {
     const init = async (): Promise<void> => {
@@ -93,7 +88,7 @@ const StablecoinApp: React.FC = () => {
           fundFromFaucet(aliceAccount.address),
           fundFromFaucet(bobAccount.address),
         ]
-        const [minLedgerVersion] = await Promise.all(fundings)
+        await Promise.all(fundings)
         setAliceBalance('1000000000')
         setBobBalance('1000000000')
         setGenesisBalance('1000000000')
@@ -105,6 +100,7 @@ const StablecoinApp: React.FC = () => {
           const account = event.transaction.Account as string
           const transactionType = event.transaction.TransactionType as string
           const fee = event.transaction.Fee as string
+          const destination = event.transaction.Destination as string
           if (account === aliceAccount.address) {
             if (transactionType === 'TrustSet') {
               setAliceBalance((prevBalance) =>
@@ -119,9 +115,11 @@ const StablecoinApp: React.FC = () => {
               setAliceTokenBalance((prevBalance) =>
                 new BigNumber(prevBalance).minus(value).toString(),
               )
-              setBobTokenBalance((prevBalance) =>
-                new BigNumber(prevBalance).plus(value).toString(),
-              )
+              if (destination === bobAccount.address) {
+                setBobTokenBalance((prevBalance) =>
+                  new BigNumber(prevBalance).plus(value).toString(),
+                )
+              }
             }
           } else if (account === bobAccount.address) {
             if (transactionType === 'TrustSet') {
@@ -137,9 +135,11 @@ const StablecoinApp: React.FC = () => {
               setBobTokenBalance((prevBalance) =>
                 new BigNumber(prevBalance).minus(value).toString(),
               )
-              setAliceTokenBalance((prevBalance) =>
-                new BigNumber(prevBalance).plus(value).toString(),
-              )
+              if (destination === aliceAccount.address) {
+                setAliceTokenBalance((prevBalance) =>
+                  new BigNumber(prevBalance).plus(value).toString(),
+                )
+              }
             }
           } else if (account === genesisAccount.address) {
             if (transactionType === 'AccountSet') {
@@ -163,25 +163,6 @@ const StablecoinApp: React.FC = () => {
                     new BigNumber(prevBalance).plus(value).toString(),
                   )
                 }
-              } else {
-                const dailyInterestRate = hexToUtf8(
-                  event.transaction.Memos[0].Memo.MemoData,
-                ).split('=')[1]
-
-                // Read the ledger and print the adjustment rate
-                getAdjustmentRate(
-                  genesisAccount.address,
-                  minLedgerVersion,
-                ).then((calculatedAdjustmentRate) =>
-                  console.log(
-                    'Current Adjustment Rate:',
-                    calculatedAdjustmentRate,
-                  ),
-                )
-
-                setAdjustmentRate(
-                  (prevRate) => prevRate * (1 - Number(dailyInterestRate)),
-                )
               }
             }
           }
@@ -217,22 +198,9 @@ const StablecoinApp: React.FC = () => {
                       </p>
                       {currencyCode && genesisRipplingEnabled && (
                         <p className="text-sm leading-5 text-gray-500">
-                          {formatNumber(aliceTokenBalance)} {currencyCode} on
-                          ledger
+                          {formatNumber(aliceTokenBalance)} {currencyCode}
                         </p>
                       )}
-                      {currencyCode &&
-                        genesisRipplingEnabled &&
-                        adjustmentRate && (
-                          <p className="text-sm leading-5 text-gray-500">
-                            {formatNumber(
-                              new BigNumber(aliceTokenBalance)
-                                .times(adjustmentRate)
-                                .toString(),
-                            )}{' '}
-                            {currencyCode} Adj.
-                          </p>
-                        )}
                     </div>
                   </div>
                 </div>
@@ -273,76 +241,106 @@ const StablecoinApp: React.FC = () => {
               </div>
             )}
             {aliceTokenBalance !== '0' && bobTrustlineOpened && (
-              <div className="flex justify-center px-4 py-5 sm:px-6">
-                <label htmlFor="aliceTokenValue">
-                  <span className="block text-sm font-medium leading-5 text-gray-700">
-                    Send {currencyCode} to Bob
-                  </span>
-                  <div className="flex items-center">
-                    <div className="relative rounded-md shadow-sm">
-                      <input
-                        id="aliceTokenValue"
-                        placeholder="Amount to send"
-                        type="number"
-                        onChange={(e): void => {
-                          setAliceToBobValue(e.currentTarget.value)
-                        }}
-                        className="block w-full text-sm leading-5 form-input"
-                      />
-                    </div>
-                    <span className="inline-flex w-auto mt-0 ml-3 rounded-md shadow-sm">
-                      <button
-                        onClick={() => {
-                          if (
-                            alice &&
-                            bob &&
-                            genesis &&
-                            aliceToBobValue &&
-                            new BigNumber(aliceTokenBalance)
-                              .minus(aliceToBobValue)
-                              .isGreaterThanOrEqualTo(0) &&
-                            currencyCode
-                          ) {
-                            sendTokens({
-                              sourceAddress: alice.address,
-                              sourceSecret: alice.secret,
-                              destinationAddress: bob.address,
-                              value: aliceToBobValue,
-                              currency: currencyCode,
-                              genesisAddress: genesis.address,
-                              adjustmentRate,
-                            })
-                          }
-                        }}
-                        disabled={
-                          !aliceToBobValue ||
-                          new BigNumber(aliceTokenBalance)
-                            .minus(aliceToBobValue)
-                            .isLessThan(0)
-                        }
-                        type="button"
-                        className={classnames(
-                          'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 text-sm leading-5',
-                          {
-                            'bg-indigo-600 hover:bg-indigo-500 focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700':
+              <>
+                <div className="flex justify-center px-4 py-5 sm:px-6">
+                  <label htmlFor="aliceTokenValue">
+                    <span className="block text-sm font-medium leading-5 text-gray-700">
+                      Send {currencyCode} to Bob
+                    </span>
+                    <div className="flex items-center">
+                      <div className="relative rounded-md shadow-sm">
+                        <input
+                          id="aliceTokenValue"
+                          placeholder="Amount to send"
+                          type="number"
+                          onChange={(e): void => {
+                            setAliceToBobValue(e.currentTarget.value)
+                          }}
+                          className="block w-full text-sm leading-5 form-input"
+                        />
+                      </div>
+                      <span className="inline-flex w-auto mt-0 ml-3 rounded-md shadow-sm">
+                        <button
+                          onClick={() => {
+                            if (
+                              alice &&
+                              bob &&
+                              genesis &&
                               aliceToBobValue &&
                               new BigNumber(aliceTokenBalance)
                                 .minus(aliceToBobValue)
-                                .isGreaterThanOrEqualTo(0),
-                            'bg-indigo-200 cursor-not-allowed':
-                              !aliceToBobValue ||
-                              new BigNumber(aliceTokenBalance)
-                                .minus(aliceToBobValue)
-                                .isLessThan(0),
-                          },
-                        )}
-                      >
-                        Send
-                      </button>
-                    </span>
-                  </div>
-                </label>
-              </div>
+                                .isGreaterThanOrEqualTo(0) &&
+                              currencyCode
+                            ) {
+                              sendTokens({
+                                sourceAddress: alice.address,
+                                sourceSecret: alice.secret,
+                                destinationAddress: bob.address,
+                                value: aliceToBobValue,
+                                currency: currencyCode,
+                                genesisAddress: genesis.address,
+                              })
+                            }
+                          }}
+                          disabled={
+                            !aliceToBobValue ||
+                            new BigNumber(aliceTokenBalance)
+                              .minus(aliceToBobValue)
+                              .isLessThan(0)
+                          }
+                          type="button"
+                          className={classnames(
+                            'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 text-sm leading-5',
+                            {
+                              'bg-indigo-600 hover:bg-indigo-500 focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700':
+                                aliceToBobValue &&
+                                new BigNumber(aliceTokenBalance)
+                                  .minus(aliceToBobValue)
+                                  .isGreaterThanOrEqualTo(0),
+                              'bg-indigo-200 cursor-not-allowed':
+                                !aliceToBobValue ||
+                                new BigNumber(aliceTokenBalance)
+                                  .minus(aliceToBobValue)
+                                  .isLessThan(0),
+                            },
+                          )}
+                        >
+                          Send
+                        </button>
+                      </span>
+                    </div>
+                  </label>
+                </div>
+
+                <div className="flex justify-center px-4 py-5 sm:px-6">
+                  <button
+                    onClick={() => {
+                      if (
+                        alice &&
+                        bob &&
+                        genesis &&
+                        new BigNumber(aliceTokenBalance).isGreaterThan(0) &&
+                        currencyCode
+                      ) {
+                        sendTokens({
+                          sourceAddress: alice.address,
+                          sourceSecret: alice.secret,
+                          destinationAddress: genesis.address,
+                          value: aliceTokenBalance,
+                          currency: currencyCode,
+                          genesisAddress: genesis.address,
+                        })
+                      }
+                    }}
+                    type="button"
+                    className={classnames(
+                      'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 text-sm leading-5 bg-indigo-600 hover:bg-indigo-500 focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700',
+                    )}
+                  >
+                    Redeem {currencyCode}
+                  </button>
+                </div>
+              </>
             )}
           </li>
 
@@ -367,22 +365,9 @@ const StablecoinApp: React.FC = () => {
                       </p>
                       {currencyCode && genesisRipplingEnabled && (
                         <p className="text-sm leading-5 text-gray-500">
-                          {formatNumber(bobTokenBalance)} {currencyCode} on
-                          ledger
+                          {formatNumber(bobTokenBalance)} {currencyCode}
                         </p>
                       )}
-                      {currencyCode &&
-                        genesisRipplingEnabled &&
-                        adjustmentRate && (
-                          <p className="text-sm leading-5 text-gray-500">
-                            {formatNumber(
-                              new BigNumber(bobTokenBalance)
-                                .times(adjustmentRate)
-                                .toString(),
-                            )}{' '}
-                            {currencyCode} Adj.
-                          </p>
-                        )}
                     </div>
                   </div>
                 </div>
@@ -460,7 +445,6 @@ const StablecoinApp: React.FC = () => {
                               value: bobToAliceValue,
                               currency: currencyCode,
                               genesisAddress: genesis.address,
-                              adjustmentRate,
                             })
                           }
                         }}
@@ -515,8 +499,7 @@ const StablecoinApp: React.FC = () => {
                       </p>
                       {currencyCode && (
                         <p className="text-sm leading-5 text-gray-500">
-                          {currencyCode} Adjustment Rate:{' '}
-                          {formatNumber(adjustmentRate.toString())}
+                          Infinite {currencyCode}
                         </p>
                       )}
                     </div>
@@ -648,7 +631,6 @@ const StablecoinApp: React.FC = () => {
                                 address,
                                 currencyCode,
                                 tokenIssuanceAmount,
-                                adjustmentRate,
                               )
                             }
                           }
@@ -657,49 +639,6 @@ const StablecoinApp: React.FC = () => {
                         Issue
                       </button>
                     </span>
-                  </div>
-                  <div className="pt-5 mt-5 border-t border-gray-200 border-1">
-                    <label htmlFor="adjustmentFactor">
-                      <span className="block text-sm font-medium leading-5 text-gray-700">
-                        Daily interest rate
-                      </span>
-                      <div className="flex items-center">
-                        <div className="relative rounded-md shadow-sm">
-                          <input
-                            id="adjustmentFactor"
-                            placeholder="0.01"
-                            onChange={(e): void => {
-                              setAdjustmentFactorInput(e.currentTarget.value)
-                            }}
-                            className="block w-full text-sm leading-5 form-input"
-                          />
-                        </div>
-                        <span className="inline-flex w-auto mt-0 ml-3 rounded-md shadow-sm">
-                          <button
-                            onClick={() => {
-                              if (adjustmentFactorInput && genesis) {
-                                setDailyInterestRate(
-                                  genesis.address,
-                                  genesis.secret,
-                                  adjustmentFactorInput,
-                                )
-                              }
-                            }}
-                            disabled={!adjustmentFactorInput}
-                            type="button"
-                            className={classnames(
-                              'w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 text-sm leading-5',
-                              {
-                                'bg-indigo-600 hover:bg-indigo-500 focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700': adjustmentFactorInput,
-                                'bg-indigo-200 cursor-not-allowed': !adjustmentFactorInput,
-                              },
-                            )}
-                          >
-                            Submit Interest
-                          </button>
-                        </span>
-                      </div>
-                    </label>
                   </div>
                 </div>
               )}
